@@ -110,31 +110,35 @@ const Dashboard = () => {
             <span className="card-note">Preuzeto iz sistema</span>
           </div>
 
-          <div className="dashboard-card purple-card">
-            <div className="card-top">
-              <span className="card-dot purple"></span>
-              <h3>Status članarine</h3>
+          {isMember && (
+            <div className="dashboard-card purple-card">
+              <div className="card-top">
+                <span className="card-dot purple"></span>
+                <h3>Status članarine</h3>
+              </div>
+              <p className="card-value" style={{ color: cardStatusColor }}>
+                {cardStatus ?? "..."}
+              </p>
+              <span className="card-note">
+                Osvežava se svakih 10s
+              </span>
             </div>
-            <p className="card-value" style={{ color: cardStatusColor }}>
-              {isMember ? (cardStatus ?? "...") : "—"}
-            </p>
-            <span className="card-note">
-              {isMember ? "Osvežava se svakih 10s" : "Samo za članove"}
-            </span>
-          </div>
+          )}
 
-          <div className="dashboard-card red-card">
-            <div className="card-top">
-              <span className="card-dot red"></span>
-              <h3>Kazneni poeni</h3>
+          {isMember && (
+            <div className="dashboard-card red-card">
+              <div className="card-top">
+                <span className="card-dot red"></span>
+                <h3>Kazneni poeni</h3>
+              </div>
+              <p className="card-value">
+                {penaltyPoints ?? "..."}
+              </p>
+              <span className="card-note">
+                Osvežava se svakih 10s
+              </span>
             </div>
-            <p className="card-value">
-              {isMember ? (penaltyPoints ?? "...") : "—"}
-            </p>
-            <span className="card-note">
-              {isMember ? "Osvežava se svakih 10s" : "Samo za članove"}
-            </span>
-          </div>
+          )}
         </div>
 
         <div className="dashboard-bottom-grid">
@@ -148,12 +152,16 @@ const Dashboard = () => {
               <button onClick={() => navigate("/objekti")}>
                 Pregled objekata
               </button>
-              <button onClick={() => navigate("/clanarina")}>
-                Članarina
-              </button>
-              <button onClick={() => navigate("/kazne")}>
-                Kazne
-              </button>
+              {isMember && (
+                <>
+                  <button onClick={() => navigate("/clanarina")}>
+                    Članarina
+                  </button>
+                  <button onClick={() => navigate("/kazne")}>
+                    Kazne
+                  </button>
+                </>
+              )}
             </div>
           </section>
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./Login.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../../context/useAppContext";
+import { useEffect } from "react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -22,6 +23,49 @@ const Login = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  useEffect(() => {
+    /* global google */
+    if (window.google) {
+      google.accounts.id.initialize({
+        client_id: "827644666382-igm4g6hgimb2lrukhd90g84mhii7o06s.apps.googleusercontent.com",
+        callback: handleGoogleLogin,
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("googleSignInDiv"),
+        { theme: "outline", size: "large", width: 360 } // Changed 100% to 360px
+      );
+    }
+  }, []);
+
+  const handleGoogleLogin = async (response) => {
+    try {
+      setIsSubmitting(true);
+      const decoded = JSON.parse(atob(response.credential.split(".")[1]));
+      
+      const res = await fetch("https://localhost:7127/api/Auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: decoded.email,
+          isGoogle: true
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        login(data.accessToken, data.refreshToken);
+        navigate("/dashboard");
+      } else {
+        setError("Google prijava nije uspela.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Greška pri Google prijavi.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogin = async (e) => {
@@ -47,19 +91,19 @@ const Login = () => {
         }),
       });
 
-      const token = await response.text();
+      const data = await response.json();
 
       if (!response.ok) {
-        setError(token || "Pogrešan email ili lozinka.");
+        setError(data.message || "Pogrešan email ili lozinka.");
         return;
       }
 
-      if (!token) {
+      if (!data.accessToken) {
         setError("Token nije vraćen sa servera.");
         return;
       }
 
-      login(token);
+      login(data.accessToken, data.refreshToken);
 
       // preusmerenje može i ovde, ali bolje po roli iz dekodiranog tokena u posebnom useEffect-u
       navigate("/dashboard");
@@ -114,6 +158,21 @@ const Login = () => {
             {isSubmitting ? "Prijavljivanje..." : "Prijavi se"}
           </button>
         </form>
+
+        <div className="login-divider">
+          <span>ILI</span>
+        </div>
+
+        <div id="googleSignInDiv" className="google-btn-container"></div>
+
+        <button 
+          type="button" 
+          className="daily-pass-btn" 
+          onClick={() => navigate("/clanarina")}
+        >
+          <span className="btn-icon">🎟️</span>
+          Dnevna karta
+        </button>
 
         <p className="login-footer-text">
           Nemaš nalog? <Link to="/registracija">Registruj se</Link>

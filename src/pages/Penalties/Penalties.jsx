@@ -190,9 +190,9 @@ const Penalties = () => {
             </button>
           </div>
           {showPenalties && (
-            <div className="penalty-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="penalty-list">
               {penalties.map((k, idx) => (
-                <div className="penalty-card" key={idx} style={{ opacity: k.isCanceled ? 0.6 : 1 }}>
+                <div className={`penalty-card ${k.isCanceled ? 'is-canceled' : ''}`} key={idx}>
                   <div className="penalty-card-top">
                     <h3>{k.type === 'Card' ? 'Kaznena Karta' : 'Kazneni Poen'}</h3>
                     <span className={`status-badge ${k.isCanceled ? "canceled" : (k.type === 'Point' ? "point" : (k.isPaid ? "paid" : "unpaid"))}`}>

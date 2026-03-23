@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
-import {getAllFitnessObjects, createFitnessObject, updateFitnessObject, deleteFitnessObject} from "../../services/fitnessObjectService";
-import { registerEmployee, getAllEmployees, deleteEmployee } from "../../services/employeeService";
+import { getAllFitnessObjects, createFitnessObject, updateFitnessObject, deleteFitnessObject } from "../../services/fitnessObjectService";
+import { registerEmployee, getAllEmployees, deleteEmployee, updateEmployee } from "../../services/employeeService";
+import { getAllMembers } from "../../services/memberService";
 import { getAllMembershipCards } from "../../services/cardService";
 import { getStatistics } from "../../services/statisticsService";
 import { getAllPenaltyCards, getAllPenaltyPoints, cancelPenalty, deletePenalty } from "../../services/penaltyService";
+import { Pencil, Trash2, User, CreditCard, ShieldCheck } from "lucide-react";
 
 const initialFormState = {
   name: "",
@@ -76,11 +78,15 @@ const Admin = () => {
 
   const [employees, setEmployees] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const [showObjects, setShowObjects] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const [showEmployees, setShowEmployees] = useState(false);
-  
+
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -106,7 +112,7 @@ const Admin = () => {
       setCardsLoading(true);
       const data = await getAllMembershipCards();
       setCards(Array.isArray(data) ? data : []);
-    } catch(err) {
+    } catch (err) {
       console.error(err);
     } finally {
       setCardsLoading(false);
@@ -122,6 +128,18 @@ const Admin = () => {
       console.error(err);
     } finally {
       setEmployeesLoading(false);
+    }
+  };
+
+  const loadMembers = async () => {
+    try {
+      setMembersLoading(true);
+      const data = await getAllMembers();
+      setMembers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMembersLoading(false);
     }
   };
 
@@ -142,7 +160,7 @@ const Admin = () => {
       setStatsLoading(true);
       const data = await getStatistics();
       setStats(data);
-    } catch(err) { console.error(err); }
+    } catch (err) { console.error(err); }
     finally { setStatsLoading(false); }
   };
 
@@ -151,10 +169,10 @@ const Admin = () => {
       setPenaltiesLoading(true);
       const c = await getAllPenaltyCards();
       const p = await getAllPenaltyPoints();
-      const mappedCards = (Array.isArray(c) ? c : []).map(x => ({...x, type: 'Card'}));
-      const mappedPoints = (Array.isArray(p) ? p : []).map(x => ({...x, type: 'Point'}));
-      setPenalties([...mappedCards, ...mappedPoints].sort((a,b) => new Date(b.date) - new Date(a.date)));
-    } catch(err) { console.error(err); }
+      const mappedCards = (Array.isArray(c) ? c : []).map(x => ({ ...x, type: 'Card' }));
+      const mappedPoints = (Array.isArray(p) ? p : []).map(x => ({ ...x, type: 'Point' }));
+      setPenalties([...mappedCards, ...mappedPoints].sort((a, b) => new Date(b.date) - new Date(a.date)));
+    } catch (err) { console.error(err); }
     finally { setPenaltiesLoading(false); }
   };
 
@@ -191,6 +209,7 @@ const Admin = () => {
     loadFitnessObjects();
     loadCards();
     loadEmployees();
+    loadMembers();
     loadStats();
     loadPenalties();
   }, []);
@@ -247,6 +266,7 @@ const Admin = () => {
 
   const resetEmployeeForm = () => {
     setEmployeeFormData(initialEmployeeFormState);
+    setEditingEmployeeId(null);
   };
 
   const resetDailyCardForm = () => {
@@ -309,12 +329,15 @@ const Admin = () => {
     setEmployeeMessage("");
     setEmployeeError("");
 
+    const isEditEmployee = editingEmployeeId !== null;
+
     const payload = {
+      id: editingEmployeeId,
       firstName: employeeFormData.firstName.trim(),
       lastName: employeeFormData.lastName.trim(),
       address: employeeFormData.address.trim(),
       email: employeeFormData.email.trim(),
-      password: employeeFormData.password.trim(),
+      password: employeeFormData.password.trim() || null, // Ensure password is sent as null if empty
       license: employeeFormData.license.trim(),
       employeeType: employeeFormData.employeeType ? Number(employeeFormData.employeeType) : 0,
     };
@@ -324,7 +347,7 @@ const Admin = () => {
       !payload.lastName ||
       !payload.address ||
       !payload.email ||
-      !payload.password ||
+      (!isEditEmployee && !payload.password) || // Password is required only for registration
       !payload.license ||
       payload.employeeType === undefined || payload.employeeType === ""
     ) {
@@ -334,15 +357,38 @@ const Admin = () => {
 
     try {
       setEmployeeSubmitLoading(true);
-      await registerEmployee(payload);
-      setEmployeeMessage("Zaposleni je uspešno registrovan.");
+      if (isEditEmployee) {
+        await updateEmployee(payload);
+        setEmployeeMessage("Podaci zaposlenog su uspešno izmenjeni.");
+      } else {
+        await registerEmployee(payload);
+        setEmployeeMessage("Zaposleni je uspešno registrovan.");
+      }
       resetEmployeeForm();
-      loadEmployees(); // Refresh employees list after registration
+      loadEmployees();
     } catch (err) {
-      setEmployeeError(err.message || "Greška pri registraciji zaposlenog.");
+      setEmployeeError(err.message || "Greška pri čuvanju podataka zaposlenog.");
     } finally {
       setEmployeeSubmitLoading(false);
     }
+  };
+
+  const handleEditEmployee = (emp) => {
+    setEditingEmployeeId(emp.id);
+    setEmployeeFormData({
+      firstName: emp.firstName || "",
+      lastName: emp.lastName || "",
+      address: emp.address || "",
+      email: emp.email || "",
+      password: "", // Leave blank unless they want to change it
+      license: emp.license || "",
+      employeeType: emp.employeeType?.toString() || "0",
+    });
+    setEmployeeMessage("");
+    setEmployeeError("");
+    // Scroll to form
+    const formElement = document.getElementById("employee-form");
+    if (formElement) formElement.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleDailyCardSubmit = async (e) => {
@@ -520,8 +566,8 @@ const Admin = () => {
                 {submitLoading
                   ? "Sačekaj..."
                   : isEditing
-                  ? "Sačuvaj izmene"
-                  : "Dodaj objekat"}
+                    ? "Sačuvaj izmene"
+                    : "Dodaj objekat"}
               </button>
 
               {isEditing && (
@@ -547,7 +593,7 @@ const Admin = () => {
               <h2>Objekti</h2>
             </div>
 
-            <div style={{display: "flex", gap: "10px"}}>
+            <div className="admin-list-actions">
               <button
                 className="refresh-btn"
                 onClick={() => setShowObjects(!showObjects)}
@@ -571,52 +617,52 @@ const Admin = () => {
               <p className="admin-empty-state">Nema dodatih objekata.</p>
             ) : (
               <div className="fitness-object-list">
-              {fitnessObjects.map((objectItem) => (
-                <div className="fitness-object-card" key={objectItem.id}>
-                  <div className="fitness-card-top">
-                    <h3>{objectItem.name}</h3>
-                    <span className="city-badge">{objectItem.city}</span>
-                  </div>
+                {fitnessObjects.map((objectItem) => (
+                  <div className="fitness-object-card" key={objectItem.id}>
+                    <div className="fitness-card-top">
+                      <h3>{objectItem.name}</h3>
+                      <span className="city-badge">{objectItem.city}</span>
+                    </div>
 
-                  <div className="fitness-object-info">
-                    <p>
-                      <strong>Adresa:</strong> {objectItem.address}
-                    </p>
-                    <p>
-                      <strong>Kapacitet:</strong> {objectItem.capacity}
-                    </p>
-                    <p>
-                      <strong>Radno vreme:</strong> {objectItem.workingHours}
-                    </p>
-                  </div>
+                    <div className="fitness-object-info">
+                      <p>
+                        <strong>Adresa:</strong> {objectItem.address}
+                      </p>
+                      <p>
+                        <strong>Kapacitet:</strong> {objectItem.capacity}
+                      </p>
+                      <p>
+                        <strong>Radno vreme:</strong> {objectItem.workingHours}
+                      </p>
+                    </div>
 
-                  <div className="fitness-object-actions">
-                    <button
-                      className="edit-btn"
-                      onClick={() => handleEdit(objectItem)}
-                    >
-                      Izmeni
-                    </button>
-                    <button
-                      className="danger-btn"
-                      onClick={() => handleDelete(objectItem.id)}
-                    >
-                      Obriši
-                    </button>
+                    <div className="fitness-object-actions">
+                      <button
+                        className="edit-btn"
+                        onClick={() => handleEdit(objectItem)}
+                      >
+                        Izmeni
+                      </button>
+                      <button
+                        className="danger-btn"
+                        onClick={() => handleDelete(objectItem.id)}
+                      >
+                        Obriši
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )
+                ))}
+              </div>
+            )
           )}
         </section>
       </div>
 
       <div className="admin-bottom-grid">
-        <section className="admin-card">
+        <section className="admin-card" id="employee-form">
           <div className="section-heading">
             <span className="section-dot green"></span>
-            <h2>Dodaj zaposlenog</h2>
+            <h2>{editingEmployeeId ? "Izmeni zaposlenog" : "Dodaj zaposlenog"}</h2>
           </div>
 
           <form className="admin-form" onSubmit={handleEmployeeSubmit}>
@@ -655,7 +701,7 @@ const Admin = () => {
             <input
               type="password"
               name="password"
-              placeholder="Lozinka"
+              placeholder={editingEmployeeId ? "Nova lozinka (ostavi prazno ako ne menjaš)" : "Lozinka"}
               value={employeeFormData.password}
               onChange={handleEmployeeChange}
             />
@@ -684,8 +730,17 @@ const Admin = () => {
                 className="primary-btn green-btn"
                 disabled={employeeSubmitLoading}
               >
-                {employeeSubmitLoading ? "Sačekaj..." : "Registruj zaposlenog"}
+                {employeeSubmitLoading ? "Sačekaj..." : (editingEmployeeId ? "Sačuvaj izmene" : "Registruj zaposlenog")}
               </button>
+              {editingEmployeeId && (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={resetEmployeeForm}
+                >
+                  Otkaži
+                </button>
+              )}
             </div>
           </form>
 
@@ -695,13 +750,13 @@ const Admin = () => {
           {employeeError && <p className="error-message">{employeeError}</p>}
         </section>
 
-        <section className="admin-list-card" style={{gridColumn: "1 / -1"}}>
+        <section className="admin-list-card admin-full-width">
           <div className="admin-list-header">
             <div className="section-heading">
               <span className="section-dot orange"></span>
               <h2>Svi Zaposleni</h2>
             </div>
-            <div style={{display: "flex", gap: "10px"}}>
+            <div className="admin-list-actions">
               <button
                 className="refresh-btn"
                 onClick={() => setShowEmployees(!showEmployees)}
@@ -719,39 +774,52 @@ const Admin = () => {
           </div>
           {showEmployees && (
             employeesLoading ? (
-               <p className="admin-empty-state">Učitavanje zaposlenih...</p>
+              <p className="admin-empty-state">Učitavanje zaposlenih...</p>
             ) : employees.length === 0 ? (
-               <p className="admin-empty-state">Nema kreiranih zaposlenih.</p>
+              <p className="admin-empty-state">Nema kreiranih zaposlenih.</p>
             ) : (
-               <div className="fitness-object-list" style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem"}}>
-                 {employees.map((emp) => (
-                   <div className="fitness-object-card" key={emp.id} style={{padding: "1rem", backgroundColor: "#1e293b", position: "relative"}}>
-                     <button 
-                       onClick={() => handleDeleteEmployee(emp.id)}
-                       style={{position: "absolute", top: "10px", right: "10px", backgroundColor: "#ef4444", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer"}}
-                     >
-                       Obriši
-                     </button>
-                     <h3 style={{marginBottom: "0.5rem"}}>{emp.firstName} {emp.lastName}</h3>
-                     <p style={{color: "#94a3b8", fontSize: "0.9rem", marginBottom: "0.25rem"}}>Uloga: {emp.employeeType === 0 ? "Instruktor" : "Redar"}</p>
-                     <p style={{color: "#94a3b8", fontSize: "0.9rem", marginBottom: "0.25rem"}}>Email: {emp.email}</p>
-                     <p style={{color: "#94a3b8", fontSize: "0.9rem"}}>Licenca: {emp.license || "Nema"}</p>
-                   </div>
-                 ))}
-               </div>
+              <div className="admin-grid-3">
+                {employees.map((emp) => (
+                  <div className="admin-card-small employee-card" key={emp.id}>
+                    <div className="employee-actions">
+                      <button
+                        onClick={() => handleEditEmployee(emp)}
+                        className="action-icon-btn edit"
+                        title="Izmeni"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEmployee(emp.id)}
+                        className="action-icon-btn delete"
+                        title="Obriši"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                    <h3 className="admin-card-title">{emp.firstName} {emp.lastName}</h3>
+                    <p className="admin-card-text">
+                      <ShieldCheck size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                      Uloga: {emp.employeeType === 0 ? "Instruktor" : "Redar"}
+                    </p>
+                    <p className="admin-card-text">Email: {emp.email}</p>
+                    <p className="admin-card-text">Licenca: {emp.license || "Nema"}</p>
+                  </div>
+                ))}
+              </div>
             )
           )}
         </section>
 
 
-        <section className="admin-list-card" style={{gridColumn: "1 / -1"}}>
+        <section className="admin-list-card admin-full-width">
           <div className="admin-list-header">
             <div className="section-heading">
               <span className="section-dot purple"></span>
               <h2>Sve Kartice</h2>
             </div>
 
-            <div style={{display: "flex", gap: "10px"}}>
+            <div className="admin-list-actions">
               <button
                 className="refresh-btn"
                 onClick={() => setShowCards(!showCards)}
@@ -774,41 +842,48 @@ const Admin = () => {
             ) : cards.length === 0 ? (
               <p className="admin-empty-state">Nema izdatih kartica.</p>
             ) : (
-              <div className="fitness-object-list" style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem"}}>
-              {cards.map((c) => (
-                <div className="fitness-object-card" key={c.id || c.cardNumber}>
-                  <div className="fitness-card-top">
-                    <h3>{c.cardNumber}</h3>
-                    <span className="city-badge">{c.validFrom !== undefined ? 'Pretplatna' : 'Dnevna'}</span>
-                  </div>
-                  <div className="fitness-object-info">
-                    {c.validFrom !== undefined ? (
-                      <>
-                        <p><strong>Član ID:</strong> {c.memberId}</p>
-                        <p><strong>Važi od:</strong> {c.validFrom ? new Date(c.validFrom).toLocaleDateString() : 'Još nije aktivirana'}</p>
-                        <p><strong>Važi do:</strong> {c.validTo ? new Date(c.validTo).toLocaleDateString() : 'Još nije aktivirana'}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p><strong>Kupljena:</strong> {c.purchaseDate ? new Date(c.purchaseDate).toLocaleDateString() : 'Sada'}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
+              <div className="admin-grid-3">
+                {cards.map((c) => {
+                  const owner = members.find(m => m.id == c.memberId || m.Id == c.memberId);
+                  const ownerName = owner ? `${owner.firstName} ${owner.lastName}` : "Nepoznat vlasnik";
+
+                  return (
+                    <div className="admin-card-small" key={c.id || c.cardNumber}>
+                      <div className="fitness-card-top">
+                        <CreditCard size={18} style={{ marginRight: '8px', color: '#38bdf8' }} />
+                        <h3>{c.cardNumber}</h3>
+                        <span className="city-badge">{c.validFrom !== undefined ? 'Pretplatna' : 'Dnevna'}</span>
+                      </div>
+                      <div className="fitness-object-info">
+                        {c.validFrom !== undefined ? (
+                          <>
+                            <p><strong>Vlasnik:</strong> {ownerName}</p>
+                            <p><strong>Važi od:</strong> {c.validFrom ? new Date(c.validFrom).toLocaleDateString() : 'Još nije aktivirana'}</p>
+                            <p><strong>Važi do:</strong> {c.validTo ? new Date(c.validTo).toLocaleDateString() : 'Još nije aktivirana'}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p><strong>Vlasnik:</strong> Dnevni korisnik</p>
+                            <p><strong>Kupljena:</strong> {c.purchaseDate ? new Date(c.purchaseDate).toLocaleDateString() : 'Sada'}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
           )}
         </section>
 
-        <section className="admin-list-card" style={{gridColumn: "1 / -1"}}>
+        <section className="admin-list-card admin-full-width">
           <div className="admin-list-header">
             <div className="section-heading">
               <span className="section-dot orange"></span>
               <h2>Sve Kazne i Poeni</h2>
             </div>
 
-            <div style={{display: "flex", gap: "10px"}}>
+            <div className="admin-list-actions">
               <button
                 className="refresh-btn"
                 onClick={() => setShowPenalties(!showPenalties)}
@@ -831,48 +906,48 @@ const Admin = () => {
             ) : penalties.length === 0 ? (
               <p className="admin-empty-state">Nema evidentiranih kazni.</p>
             ) : (
-              <div className="fitness-object-list" style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem"}}>
-              {penalties.map((p, idx) => (
-                <div className="fitness-object-card" key={idx} style={{opacity: p.isCanceled ? 0.6 : 1}}>
-                  <div className="fitness-card-top">
-                    <h3>{p.type === 'Card' ? 'Kaznena Karta' : 'Kazneni Poen'}</h3>
-                    <span className="city-badge" style={{background: p.isCanceled ? '#64748b' : '#ef4444'}}>
-                      {p.isCanceled ? 'Stornirano' : 'Aktivno'}
-                    </span>
-                  </div>
-                  <div className="fitness-object-info">
-                    <p><strong>Član ID:</strong> {p.memberId}</p>
-                    <p><strong>Datum:</strong> {new Date(p.date).toLocaleDateString()} {new Date(p.date).toLocaleTimeString()}</p>
-                    <p><strong>Razlog:</strong> {p.reason || p.description}</p>
-                    {p.type === 'Card' && <p><strong>Cena:</strong> {p.price} RSD</p>}
-                    
-                    {p.isCanceled && (
-                      <p style={{marginTop: '0.5rem', color: '#fbbf24'}}><strong>Napomena:</strong> {p.cancelReason}</p>
-                    )}
-                    
-                    {!p.isCanceled && (
-                      <button 
-                        onClick={() => handleCancelPenalty(p.id, p.type)}
-                        style={{marginTop: "1rem", width: "100%", backgroundColor: "#334155", color: "white", border: "1px solid #475569", borderRadius: "4px", padding: "8px", cursor: "pointer"}}
+              <div className="fitness-object-list" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                {penalties.map((p, idx) => (
+                  <div className={`admin-card-small ${p.isCanceled ? 'is-canceled' : ''}`} key={idx}>
+                    <div className="fitness-card-top">
+                      <h3>{p.type === 'Card' ? 'Kaznena Karta' : 'Kazneni Poen'}</h3>
+                      <span className={`status-badge ${p.isCanceled ? 'canceled' : 'active-red'}`}>
+                        {p.isCanceled ? 'Stornirano' : 'Aktivno'}
+                      </span>
+                    </div>
+                    <div className="fitness-object-info">
+                      <p><strong>Član ID:</strong> {p.memberId}</p>
+                      <p><strong>Datum:</strong> {new Date(p.date).toLocaleDateString()} {new Date(p.date).toLocaleTimeString()}</p>
+                      <p><strong>Razlog:</strong> {p.reason || p.description}</p>
+                      {p.type === 'Card' && <p><strong>Cena:</strong> {p.price} RSD</p>}
+
+                      {p.isCanceled && (
+                        <p className="admin-cancel-note"><strong>Napomena:</strong> {p.cancelReason}</p>
+                      )}
+
+                      {!p.isCanceled && (
+                        <button
+                          onClick={() => handleCancelPenalty(p.id, p.type)}
+                          className="admin-action-btn dark"
+                        >
+                          Storniraj (uz napomenu)
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeletePenaltyCard(p.id, p.type)}
+                        className="admin-action-btn red"
                       >
-                        Storniraj (uz napomenu)
+                        Trajno Obriši
                       </button>
-                    )}
-                    <button 
-                      onClick={() => handleDeletePenaltyCard(p.id, p.type)}
-                      style={{marginTop: "0.5rem", width: "100%", backgroundColor: "#ef4444", color: "white", border: "none", borderRadius: "4px", padding: "8px", cursor: "pointer"}}
-                    >
-                      Trajno Obriši
-                    </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )
+                ))}
+              </div>
+            )
           )}
         </section>
 
-        <section className="admin-card stats-card" style={{gridColumn: "1 / -1"}}>
+        <section className="admin-card stats-card admin-full-width">
           <div className="admin-list-header">
             <div className="section-heading">
               <span className="section-dot green"></span>
@@ -884,26 +959,26 @@ const Admin = () => {
           </div>
 
           {statsLoading || !stats ? (
-             <p className="admin-empty-state">Učitavanje statistike...</p>
+            <p className="admin-empty-state">Učitavanje statistike...</p>
           ) : (
-             <div style={{display: 'flex', gap: '2rem', marginTop: '1rem', flexWrap: 'wrap'}}>
-               <div style={{flex: 1, backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '8px', minWidth: '200px'}}>
-                  <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem'}}>Aktivnih Članova</p>
-                  <h3 style={{fontSize: '2rem', color: 'white'}}>{stats.totalActiveMembers}</h3>
-               </div>
-               <div style={{flex: 1, backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '8px', minWidth: '200px'}}>
-                  <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem'}}>Ukupno Pretplatnih Kartica</p>
-                  <h3 style={{fontSize: '2rem', color: 'white'}}>{stats.totalSubscriptionCards}</h3>
-               </div>
-               <div style={{flex: 1, backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '8px', minWidth: '200px'}}>
-                  <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem'}}>Ukupno Dnevnih Kartica</p>
-                  <h3 style={{fontSize: '2rem', color: 'white'}}>{stats.totalDailyCards}</h3>
-               </div>
-               <div style={{flex: 1, backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '8px', minWidth: '200px'}}>
-                  <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem'}}>Prihod od Kazni</p>
-                  <h3 style={{fontSize: '2rem', color: '#22c55e'}}>{stats.totalPenaltyRevenue} RSD</h3>
-               </div>
-             </div>
+            <div className="admin-stats-container">
+              <div className="admin-stat-box">
+                <p className="admin-stat-label">Aktivnih Članova</p>
+                <h3 className="admin-stat-value">{stats.totalActiveMembers}</h3>
+              </div>
+              <div className="admin-stat-box">
+                <p className="admin-stat-label">Ukupno Pretplatnih Kartica</p>
+                <h3 className="admin-stat-value">{stats.totalSubscriptionCards}</h3>
+              </div>
+              <div className="admin-stat-box">
+                <p className="admin-stat-label">Ukupno Dnevnih Kartica</p>
+                <h3 className="admin-stat-value">{stats.totalDailyCards}</h3>
+              </div>
+              <div className="admin-stat-box success-box">
+                <p className="admin-stat-label">Prihod od Kazni</p>
+                <h3 className="admin-stat-value">{stats.totalPenaltyRevenue} RSD</h3>
+              </div>
+            </div>
           )}
         </section>
       </div>

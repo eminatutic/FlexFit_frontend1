@@ -96,8 +96,9 @@ const Guard = () => {
   const [showCards, setShowCards] = useState(false);
   const [penaltyLoading, setPenaltyLoading] = useState(false);
   const [quickEntryValue, setQuickEntryValue] = useState("");
-  const [quickEntryResult, setQuickEntryResult] = useState(null); // { status: "success" | "error", message: string }
   const [manualSearchResult, setManualSearchResult] = useState(null);
+  const [creationMessage, setCreationMessage] = useState("");
+  const [creationError, setCreationError] = useState("");
 
   useEffect(() => {
     getAllFitnessObjects()
@@ -251,6 +252,9 @@ const Guard = () => {
     e.preventDefault();
     if (!quickEntryValue.trim()) return;
 
+    setMessage("");
+    setError("");
+
     const val = quickEntryValue.trim();
     // Brzi ulaz ide samo preko broja kartice
     const foundCard = cards.find(c => c.cardNumber === val);
@@ -269,15 +273,9 @@ const Guard = () => {
           employeeId: getGuaranteedUserId()
         };
         console.log("SENDING LOG (Quick Entry):", logPayload);
-        await logEntry(logPayload);
+        logEntry(logPayload).catch(() => { });
 
-        if (isActive) {
-          setQuickEntryResult({ status: "success", message: "Ulaz potvrđen!" });
-        } else {
-          setQuickEntryResult({ status: "error", message: "Kartica nije važeća, ulaz nije moguć." });
-        }
-
-        // DODATO: Prikazivanje detalja člana u kartici pored skenera
+        // Prikazivanje detalja člana u kartici pored skenera
         const member = members.find(m => (m.id || m.Id) == foundCard.memberId);
         const memberName = member ? `${member.firstName} ${member.lastName}` : (foundCard.memberId ? `Član ID: ${foundCard.memberId}` : "Anonimni korisnik");
 
@@ -285,12 +283,21 @@ const Guard = () => {
           id: foundCard.memberId || foundCard.id,
           ime: memberName,
           kartica: foundCard.cardNumber,
-          status: isActive ? "Aktivna" : "Nevažeća",
+          status: isActive ? "Aktivna" : "Nevažeća / Istekla",
           objekat: "-",
           tip: cardType
         });
+
+        if (isActive) {
+          setMessage("Ulaz odobren!");
+          setError("");
+        } else {
+          setError("Kartica nije važeća, ulaz nije moguć.");
+          setMessage("");
+        }
       } else {
-        setQuickEntryResult({ status: "error", message: "Kartica nije pronađena!" });
+        setError("Kartica nije pronađena u bazi!");
+        setMessage("");
 
         // Loguj incident
         const incidentPayload = {
@@ -302,14 +309,15 @@ const Guard = () => {
           employeeId: getGuaranteedUserId()
         };
         console.log("SENDING INCIDENT (Quick Entry):", incidentPayload);
-        await logEntry(incidentPayload);
+        logEntry(incidentPayload).catch(() => { });
+        setSearchResult(null);
       }
     } catch (err) {
-      setQuickEntryResult({ status: "error", message: "Greška pri povezivanju." });
+      setError("Greška pri povezivanju sa serverom.");
+      setMessage("");
     }
 
     setQuickEntryValue("");
-    setTimeout(() => setQuickEntryResult(null), 3000);
   };
 
   const handleExtendMembership = async () => {
@@ -348,26 +356,26 @@ const Guard = () => {
   const handleCreateDailyClick = async (e) => {
     e.preventDefault();
     try {
-      setError("");
-      setMessage("Generisanje koda...");
+      setCreationError("");
+      setCreationMessage("Generisanje koda...");
       const code = await generateUniqueCode();
       await createDailyCard({
         cardNumber: code,
         fitnessObjectIds: dailyCardData.fitnessObjectIds,
         purchaseDate: new Date().toISOString()
       });
-      setMessage("Dnevna kartica uspešno kreirana! Kod: " + code);
+      setCreationMessage("Dnevna kartica uspešno kreirana! Kod: " + code);
       getAllMembershipCards().then(data => setCards(Array.isArray(data) ? data : []));
     } catch (err) {
-      setError(err.message || "Greška pri kreiranju kartice");
+      setCreationError(err.message || "Greška pri kreiranju kartice");
     }
   };
 
   const handleCreateSubClick = async (e) => {
     e.preventDefault();
     try {
-      setError("");
-      setMessage("Generisanje koda...");
+      setCreationError("");
+      setCreationMessage("Generisanje koda...");
       const code = await generateUniqueCode();
       await createSubscriptionCard({
         cardNumber: code,
@@ -376,10 +384,10 @@ const Guard = () => {
         validFrom: null,
         validTo: null
       });
-      setMessage("Pretplatna kartica uspešno kreirana! Kod: " + code);
+      setCreationMessage("Pretplatna kartica uspešno kreirana! Kod: " + code);
       getAllMembershipCards().then(data => setCards(Array.isArray(data) ? data : []));
     } catch (err) {
-      setError(err.message || "Greška pri kreiranju kartice");
+      setCreationError(err.message || "Greška pri kreiranju kartice");
     }
   };
 
@@ -526,6 +534,10 @@ const Guard = () => {
           </div>
         )}
 
+        <div style={{ gridColumn: "1 / -1" }}>
+          {message && <p className="success-message">{message}</p>}
+          {error && <p className="error-message">{error}</p>}
+        </div>
 
         <section className="guard-panel" style={{ gridColumn: "1 / -1" }}>
           <div className="section-heading">
@@ -542,23 +554,8 @@ const Guard = () => {
             />
             <button type="submit" className="primary-btn">Ulaz</button>
           </form>
-          {quickEntryResult && (
-            <div className={`quick-result-banner ${quickEntryResult.status}`} style={{
-              marginTop: "12px",
-              padding: "15px",
-              borderRadius: "12px",
-              textAlign: "center",
-              fontWeight: "bold",
-              background: quickEntryResult.status === "success" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
-              color: quickEntryResult.status === "success" ? "#22c55e" : "#ef4444",
-              border: `1px solid ${quickEntryResult.status === "success" ? "#22c55e" : "#ef4444"}`
-            }}>
-              {quickEntryResult.message}
-            </div>
-          )}
         </section>
-        {message && <p className="success-message" style={{ marginTop: "1rem" }}>{message}</p>}
-        {error && <p className="error-message" style={{ marginTop: "1rem" }}>{error}</p>}
+
 
         <section className="guard-panel" style={{ gridColumn: "1 / -1" }}>
           <div className="section-heading">
@@ -736,16 +733,7 @@ const Guard = () => {
             <h2>Nova Pretplatna Kartica</h2>
           </div>
           <form className="search-box" onSubmit={handleCreateSubClick} style={{ flexDirection: "column", gap: "10px" }}>
-            {/* <select
-              value={subCardData.memberId || ""}
-              onChange={(e) => setSubCardData({ ...subCardData, memberId: e.target.value })}
-              style={{ width: "100%", padding: "0.5rem" }}
-            >
-              <option value="">Opciono: Izaberi člana</option>
-              {members.map(m => (
-                <option key={m.id || m.Id} value={m.id || m.Id}>{m.firstName} {m.lastName} (ID: {m.id || m.Id})</option>
-              ))}
-            </select> */}
+
             <label style={{ display: "flex", gap: "10px", alignItems: "center", alignSelf: "flex-start" }}>
               <input
                 type="checkbox"
@@ -757,6 +745,11 @@ const Guard = () => {
             <button type="submit" style={{ width: "100%" }}>Generiši i Dodeli</button>
           </form>
         </section>
+
+        <div style={{ gridColumn: "1 / -1", marginTop: "1rem" }}>
+          {creationMessage && <p className="success-message">{creationMessage}</p>}
+          {creationError && <p className="error-message">{creationError}</p>}
+        </div>
       </div>
 
 

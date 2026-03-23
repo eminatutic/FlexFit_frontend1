@@ -146,8 +146,20 @@ const Membership = () => {
           <div className="qr-box">
             {userCard ? (
               <>
-                <QRCodeCanvas value={userCard.cardNumber} size={170} />
-                <p>Broj kartice: {userCard.cardNumber}</p>
+                <div className="qr-code-wrapper">
+                  <QRCodeCanvas 
+                    value={userCard.cardNumber} 
+                    size={200} 
+                    includeMargin={true}
+                    level="H"
+                  />
+                  <div className="qr-scan-line"></div>
+                </div>
+                <div className="qr-card-info">
+                  <p className="qr-label">Broj kartice</p>
+                  <code className="qr-number">{userCard.cardNumber}</code>
+                </div>
+                <p className="qr-instruction">Pokaži ovaj kod na ulazu u objekat</p>
               </>
             ) : (
               <div style={{width: 170, height: 170, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #334155', borderRadius: '8px', margin: '0 auto 1rem'}}>

@@ -5,6 +5,7 @@ export const AppContext = createContext();
 
 function AppProvider({ children }) {
   const [authToken, setAuthToken] = useState(localStorage.getItem("authToken"));
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken"));
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState(null);
@@ -69,11 +70,31 @@ function AppProvider({ children }) {
       setFullName(nameClaim);
     } catch (err) {
       console.log("Token decode error:", err.message);
-      logout();
+      // Don't logout immediately on decode error if we have a refresh token
+      if (!refreshToken) logout();
     }
 
     setIsLoading(false);
   }, [authToken]);
+
+  useEffect(() => {
+    if (!authToken || !refreshToken) return;
+
+    try {
+      const decoded = jwtDecode(authToken);
+      const expiresAt = decoded.exp * 1000;
+      const timeout = expiresAt - Date.now() - 60000; // Refresh 1 minute before expiry
+
+      if (timeout > 0) {
+        const timerId = setTimeout(refreshAccessToken, timeout);
+        return () => clearTimeout(timerId);
+      } else {
+        refreshAccessToken();
+      }
+    } catch (err) {
+      console.error("Silent refresh setup error:", err);
+    }
+  }, [authToken, refreshToken]);
 
   function clearUserState() {
     setUser(null);
@@ -85,14 +106,40 @@ function AppProvider({ children }) {
     setIsMember(false);
   }
 
-  function login(token) {
+  async function refreshAccessToken() {
+    if (!refreshToken || !authToken) return;
+
+    try {
+      const response = await fetch("https://localhost:7127/api/Auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken: authToken, refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        login(data.accessToken, data.refreshToken);
+      } else {
+        logout();
+      }
+    } catch (err) {
+      console.error("Refresh token error:", err);
+      logout();
+    }
+  }
+
+  function login(token, rToken) {
     localStorage.setItem("authToken", token);
+    if (rToken) localStorage.setItem("refreshToken", rToken);
     setAuthToken(token);
+    if (rToken) setRefreshToken(rToken);
   }
 
   function logout() {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
     setAuthToken(null);
+    setRefreshToken(null);
     clearUserState();
   }
 
