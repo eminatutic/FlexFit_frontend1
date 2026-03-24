@@ -11,10 +11,7 @@ const Navbar = () => {
     navigate("/prijava");
   };
 
-  // Logic: Everyone (including guests) can see Članarina
-  // Members, Employees, and Admins can see Dashboard, Objekti, Kazne
-  // Employees and Admins can see Redar
-  // Only Admins can see Admin page
+ 
   const showBasic = isAdmin || isEmployee || isMember;
   const showRedar = isAdmin || isEmployee;
   const showAdmin = isAdmin;
