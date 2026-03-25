@@ -448,3 +448,21 @@
   border-color: #38bdf8;
   background: rgba(56, 189, 248, 0.1);
 }
+
+.status-select {
+  background: #0f172a;
+  color: white;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}

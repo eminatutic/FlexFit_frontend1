@@ -193,7 +193,7 @@ const FacilityDetails = () => {
                             setBookMessage("Greška pri ažuriranju statusa: " + err.message);
                           }
                         }}
-                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '4px', padding: '2px 4px' }}
+                        className="status-select"
                       >
                         {RESOURCE_STATUS.map((s, idx) => (
                           <option key={idx} value={idx}>{s}</option>
