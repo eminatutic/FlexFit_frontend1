@@ -3,7 +3,7 @@ import Welcome from "./pages/Welcome/Welcome";
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import Dashboard from "./pages/Dashboard/Dashboard";
-import Facilities from "./pages/Facilities/Facilities";
+import Facilities from "./pages/facilities/facilities";
 import FacilityDetails from "./pages/Facilities/FacilityDetails";
 import Membership from "./pages/Membership/Membership";
 import Guard from "./pages/Guard/Guard";
