@@ -6,3 +6,10 @@ export const loginUser = async (payload) => {
     body: JSON.stringify(payload),
   });
 };
+
+export const registerMember = async (payload) => {
+  return await apiFetch("/api/Auth/register-member", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};

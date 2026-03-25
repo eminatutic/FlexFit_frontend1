@@ -1,6 +1,7 @@
 import "./Register.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { registerMember } from "../../services/authService";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -45,16 +46,11 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch("https://localhost:7127/api/Auth/register-member", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
+      const data = await registerMember(formData);
+      if (data) {
          navigate("/prijava");
       } else {
-         const errorData = await response.json();
-         setError(errorData.message || "Greška pri registraciji.");
+         setError("Greška pri registraciji.");
       }
     } catch(err) {
       setError("Greška u komunikaciji sa serverom.");
@@ -67,7 +63,7 @@ const Register = () => {
       <div className="register-bg-orb orb-two"></div>
 
       <div className="register-box">
-        <p className="register-kicker">FlexFit Access</p>
+        <p className="register-kicker">FlexFit Registracija</p>
         <h2>Registracija</h2>
         <p className="register-subtitle">
           Kreiraj nalog i pristupi svim FlexFit funkcionalnostima.

@@ -1,43 +1,23 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "../../context/useAppContext";
-import { createPenaltyCard, createPenaltyPoint, getAllPenaltyCards, getAllPenaltyPoints } from "../../services/penaltyService";
+import { getAllPenaltyCards, getAllPenaltyPoints } from "../../services/penaltyService";
 import { getAllFitnessObjects } from "../../services/fitnessObjectService";
-import { getAllMembers } from "../../services/memberService";
 import "./Penalties.css";
 
 const Penalties = () => {
   const { isEmployee, isAdmin, userId } = useAppContext();
 
   const [penalties, setPenalties] = useState([]);
-  const [objects, setObjects] = useState([]);
-  const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPenalties, setShowPenalties] = useState(true);
-
-  const [formData, setFormData] = useState({
-    type: "Card",
-    memberId: "",
-    fitnessObjectId: "",
-    price: "",
-    reason: ""
-  });
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [cardsRes, pointsRes, objRes, allCardsRes] = await Promise.all([
+      const [cardsRes, pointsRes] = await Promise.all([
         getAllPenaltyCards(),
-        getAllPenaltyPoints(),
-        getAllFitnessObjects(),
-        import("../../services/cardService").then(m => m.getAllMembershipCards())
+        getAllPenaltyPoints()
       ]);
-
-      setObjects(Array.isArray(objRes) ? objRes : []);
-      const allCards = Array.isArray(allCardsRes) ? allCardsRes : [];
-      // Only keep cards that have a memberId since penalties are tied to members
-      setCards(allCards.filter(c => c.memberId));
 
       const mappedCards = (Array.isArray(cardsRes) ? cardsRes : []).map(c => ({ ...c, type: 'Card' }));
       const mappedPoints = (Array.isArray(pointsRes) ? pointsRes : []).map(p => ({ ...p, type: 'Point' }));
@@ -61,38 +41,7 @@ const Penalties = () => {
     loadData();
   }, [isEmployee, isAdmin, userId]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitLoading(true);
-    setMessage("");
-    try {
-      if (formData.type === "Card") {
-        await createPenaltyCard({
-          memberId: Number(formData.memberId),
-          fitnessObjectId: Number(formData.fitnessObjectId),
-          price: Number(formData.price),
-          reason: formData.reason
-        });
-        setMessage("Kaznena karta uspešno kreirana!");
-      } else {
-        await createPenaltyPoint({
-          memberId: Number(formData.memberId),
-          description: formData.reason
-        });
-        setMessage("Kazneni poen uspešno dodat!");
-      }
-      setFormData({ type: "Card", memberId: "", fitnessObjectId: "", price: "", reason: "" });
-      loadData();
-    } catch (err) {
-      setMessage("Greška: " + err.message);
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
 
   const totalCount = penalties.length;
   const debtPenalties = penalties.filter(p => p.type === 'Card' && !p.isPaid && !p.isCanceled);
@@ -139,40 +88,6 @@ const Penalties = () => {
         </div>
       </div>
 
-      {/* {(isEmployee || isAdmin) && (
-        <section className="form-section" style={{backgroundColor: '#1e293b', padding: '2rem', borderRadius: '12px', marginBottom: '2rem'}}>
-          <h2 style={{color: 'white', marginBottom: '1.5rem'}}>Izdavanje Nove Kazne</h2>
-          <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-            <div style={{display: 'flex', gap: '1rem'}}>
-               <select name="type" value={formData.type} onChange={handleChange} required style={{flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white'}}>
-                 <option value="Card">Dnevna Kaznena Karta</option>
-                 <option value="Point">Kazneni Poen</option>
-               </select>
-               <select name="memberId" value={formData.memberId} onChange={handleChange} required style={{flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white'}}>
-                 <option value="" disabled>Izaberi karticu za kaznu</option>
-                 {cards.map(c => <option key={c.id || c.cardNumber} value={c.memberId}>Kartica: {c.cardNumber} (ID Člana: {c.memberId})</option>)}
-               </select>
-            </div>
-
-            {formData.type === "Card" && (
-              <div style={{display: 'flex', gap: '1rem'}}>
-                <select name="fitnessObjectId" value={formData.fitnessObjectId} onChange={handleChange} required style={{flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white'}}>
-                  <option value="" disabled>Izaberi objekat</option>
-                  {objects.map(obj => <option key={obj.id} value={obj.id}>{obj.name}</option>)}
-                </select>
-                <input type="number" name="price" placeholder="Iznos naplate (RSD)" value={formData.price} onChange={handleChange} required style={{flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white'}} />
-              </div>
-            )}
-
-            <input type="text" name="reason" placeholder="Razlog / Napomena" value={formData.reason} onChange={handleChange} required style={{padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white'}} />
-
-            <button type="submit" disabled={submitLoading} style={{padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: '#ef4444', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginTop: '1rem'}}>
-              {submitLoading ? "Sačekaj..." : "Izdaj Kaznu / Poen"}
-            </button>
-            {message && <p style={{color: '#94a3b8', marginTop: '0.5rem'}}>{message}</p>}
-          </form>
-        </section>
-      )} */}
 
       {loading ? (
         <div className="penalties-empty-state">Učitavanje...</div>

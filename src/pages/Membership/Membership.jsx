@@ -15,24 +15,26 @@ const Membership = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
     getAllMembershipCards()
       .then((cards) => {
+        if (!isMounted) return;
         const cardsArray = Array.isArray(cards) ? cards : [];
         setAllCards(cardsArray);
 
         if (userId) {
-          // Attempt to find a card belonging to this user
           const myCard = cardsArray.find(c => 
-             (c.memberId && c.memberId == userId) || 
+             (c.memberId && Number(c.memberId) === Number(userId)) || 
              (userEmail && c.email === userEmail)
           );
-          if (myCard) {
-             setUserCard(myCard);
-          }
+          if (myCard) setUserCard(myCard);
         }
       })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+      .catch(console.error)
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
   }, [userId, userEmail]);
 
   const handleActivate = (e) => {
@@ -75,7 +77,7 @@ const Membership = () => {
     <div className="membership">
       <div className="membership-hero">
         <div>
-          <p className="membership-kicker">FlexFit Membership</p>
+          <p className="membership-kicker">FlexFit Članarina</p>
           <h1>Moja članarina</h1>
           <p className="membership-subtitle">
             Pregled tvoje digitalne kartice i statusa članarine.

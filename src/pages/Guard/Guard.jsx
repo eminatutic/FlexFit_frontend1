@@ -8,14 +8,6 @@ import { createPenaltyCard, payPenalty, getAllPenaltyCards } from "../../service
 import { getAllFitnessObjects } from "../../services/fitnessObjectService";
 import { getAllMembers } from "../../services/memberService";
 
-const mockMember = {
-  id: "USER_12345",
-  ime: "Željko Timotijević",
-  kartica: "FF-2026-001",
-  status: "Aktivna",
-  objekat: "FlexFit Beograd",
-  tip: "Pretplatna",
-};
 
 const Guard = () => {
   const { userId, authToken } = useAppContext();
@@ -403,7 +395,7 @@ const Guard = () => {
     <div className="guard">
       <div className="guard-hero">
         <div>
-          <p className="guard-kicker">FlexFit Guard Panel</p>
+          <p className="guard-kicker">FlexFit Redar panel</p>
           <h1>Panel za redare</h1>
           <p className="guard-subtitle">
             Proveri člana i generiši nove kartice.
@@ -740,7 +732,7 @@ const Guard = () => {
                 checked={subCardData.personalTrainer}
                 onChange={(e) => setSubCardData({ ...subCardData, personalTrainer: e.target.checked })}
               />
-              Personalni trener
+              Personalni trener (+3000 dinara)
             </label>
             <button type="submit" style={{ width: "100%" }}>Generiši i Dodeli</button>
           </form>

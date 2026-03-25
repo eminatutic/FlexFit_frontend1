@@ -284,28 +284,6 @@ const FacilityDetails = () => {
 
                     </div>
                   )}
-
-                  {/* Lista rezervacija */}
-                  {/* {reservationsList[res.id] && reservationsList[res.id].length > 0 && (
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
-                      <h4 style={{ marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.9rem' }}>Trenutne i predstojeće rezervacije</h4>
-                      <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {reservationsList[res.id]
-                          .filter(r => new Date(r.endTime) > new Date()) // Prikazuje samo one koje nisu istekle
-                          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-                          .map(r => (
-                            <li key={r.id} style={{ background: '#0f172a', padding: '0.5rem', borderRadius: '6px', fontSize: '0.85rem' }}>
-                              <strong style={{ color: '#38bdf8' }}>Korisnik ID: {r.memberId}</strong> <br />
-                              Od: {new Date(r.startTime).toLocaleString()} <br />
-                              Do: {new Date(r.endTime).toLocaleString()}
-                            </li>
-                          ))}
-                        {reservationsList[res.id].filter(r => new Date(r.endTime) > new Date()).length === 0 && (
-                          <li style={{ color: '#64748b', fontSize: '0.85rem' }}>Nema aktivnih rezervacija.</li>
-                        )}
-                      </ul>
-                    </div>
-                  )} */}
                 </div>
               </div>
             ))}

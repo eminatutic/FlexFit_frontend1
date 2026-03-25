@@ -2,11 +2,12 @@ import { useState } from "react";
 import "./Login.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../../context/useAppContext";
+import { loginUser } from "../../services/authService";
 import { useEffect } from "react";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, user, isAdmin, isEmployee, isMember } = useAppContext();
+  const { login } = useAppContext();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -44,17 +45,12 @@ const Login = () => {
       setIsSubmitting(true);
       const decoded = JSON.parse(atob(response.credential.split(".")[1]));
       
-      const res = await fetch("https://localhost:7127/api/Auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: decoded.email,
-          isGoogle: true
-        }),
+      const data = await loginUser({
+        email: decoded.email,
+        isGoogle: true
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (data && data.accessToken) {
         login(data.accessToken, data.refreshToken);
         navigate("/dashboard");
       } else {
@@ -80,33 +76,17 @@ const Login = () => {
     try {
       setIsSubmitting(true);
 
-      const response = await fetch("https://localhost:7127/api/Auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+      const data = await loginUser({
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Pogrešan email ili lozinka.");
-        return;
+      if (data && data.accessToken) {
+        login(data.accessToken, data.refreshToken);
+        navigate("/dashboard");
+      } else {
+        setError("Greška pri prijavi.");
       }
-
-      if (!data.accessToken) {
-        setError("Token nije vraćen sa servera.");
-        return;
-      }
-
-      login(data.accessToken, data.refreshToken);
-
-      // preusmerenje može i ovde, ali bolje po roli iz dekodiranog tokena u posebnom useEffect-u
-      navigate("/dashboard");
     } catch (err) {
       console.log(err);
       setError("Greška pri povezivanju sa serverom.");
@@ -121,7 +101,7 @@ const Login = () => {
       <div className="login-bg-orb orb-two"></div>
 
       <div className="login-box">
-        <p className="login-kicker">FlexFit Access</p>
+        <p className="login-kicker">FlexFit Prijava</p>
         <h2>Prijava</h2>
         <p className="login-subtitle">
           Prijavi se na svoj nalog i nastavi sa korišćenjem sistema.
