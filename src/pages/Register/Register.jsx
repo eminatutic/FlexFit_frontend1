@@ -53,7 +53,7 @@ const Register = () => {
          setError("Greška pri registraciji.");
       }
     } catch(err) {
-      setError("Greška u komunikaciji sa serverom.");
+      setError(err.message);
     }
   };
 

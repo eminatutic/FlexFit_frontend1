@@ -333,13 +333,9 @@ const Guard = () => {
     let code = "";
     while (!unique) {
       code = Math.random().toString(36).substring(2, 10).toUpperCase();
-      try {
-        const res = await checkCardCodeUnique(code);
-        if (res.isUnique) {
-          unique = true;
-        }
-      } catch (err) {
-        unique = true; // Fallback da ne upadne u infinite loop ako padne mreža
+      const res = await checkCardCodeUnique(code);
+      if (res.isUnique) {
+        unique = true;
       }
     }
     return code;

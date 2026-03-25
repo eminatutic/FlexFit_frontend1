@@ -35,7 +35,7 @@ const Login = () => {
       });
       google.accounts.id.renderButton(
         document.getElementById("googleSignInDiv"),
-        { theme: "outline", size: "large", width: 360 } // Changed 100% to 360px
+        { theme: "outline", size: "large", width: 360 }
       );
     }
   }, []);
@@ -44,7 +44,7 @@ const Login = () => {
     try {
       setIsSubmitting(true);
       const decoded = JSON.parse(atob(response.credential.split(".")[1]));
-      
+
       const data = await loginUser({
         email: decoded.email,
         isGoogle: true
@@ -145,9 +145,9 @@ const Login = () => {
 
         <div id="googleSignInDiv" className="google-btn-container"></div>
 
-        <button 
-          type="button" 
-          className="daily-pass-btn" 
+        <button
+          type="button"
+          className="daily-pass-btn"
           onClick={() => navigate("/clanarina")}
         >
           <span className="btn-icon">🎟️</span>

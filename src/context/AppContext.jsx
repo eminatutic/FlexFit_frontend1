@@ -41,8 +41,8 @@ function AppProvider({ children }) {
       const roles = Array.isArray(roleClaim)
         ? roleClaim
         : roleClaim
-        ? [roleClaim]
-        : [];
+          ? [roleClaim]
+          : [];
 
       setIsAdmin(roles.includes("Admin"));
       setIsEmployee(roles.includes("Employee"));
@@ -70,7 +70,6 @@ function AppProvider({ children }) {
       setFullName(nameClaim);
     } catch (err) {
       console.log("Token decode error:", err.message);
-      // Don't logout immediately on decode error if we have a refresh token
       if (!refreshToken) logout();
     }
 

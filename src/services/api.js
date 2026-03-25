@@ -40,6 +40,9 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Pokušali ste previše puta, pokušajte ponovo kasnije.");
+    }
     const message =
       data?.message || data?.title || data || "Došlo je do greške.";
     throw new Error(message);
