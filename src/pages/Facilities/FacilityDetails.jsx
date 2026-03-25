@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getFitnessObjectById } from "../../services/fitnessObjectService";
 import { apiFetch } from "../../services/api";
 import { useAppContext } from "../../context/useAppContext";
+import { Pencil } from "lucide-react";
 import "./FacilityDetails.css";
 
 const RESOURCE_TYPES = ["Kardio", "Tegovi", "Grupna sala"];
@@ -169,10 +170,10 @@ const FacilityDetails = () => {
                     {(isAdmin || isEmployee) && (
                       <button 
                         onClick={() => setEditingResourceId(editingResourceId === res.id ? null : res.id)}
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+                        className="action-icon-btn edit"
                         title="Izmeni status"
                       >
-                        ✏️
+                        <Pencil size={18} />
                       </button>
                     )}
                     {editingResourceId === res.id ? (
@@ -213,22 +214,7 @@ const FacilityDetails = () => {
                     </div>
                   )}
 
-                  {(res.status === 1) && (isAdmin || isEmployee) && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await apiFetch(`/api/Reservations/mark-no-show/${res.id}`, { method: "POST" });
-                          setBookMessage("Kazna primenjena za nepojavljivanje na spravi " + res.id);
-                          loadData();
-                        } catch (err) {
-                          setBookMessage("Greška pri pisanju kazne: " + err.message);
-                        }
-                      }}
-                      style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                    >
-                      Upiši kaznu (Neiskorišćeno)
-                    </button>
-                  )}
+
 
                   {/* Dostupni Termini za sve sprave (samo ako je slobodna) */}
                   {res.status === 0 ? (
