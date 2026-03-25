@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://localhost:7127";
+const API_BASE_URL = "https://flexfit.up.railway.app";
 
 export const getAuthToken = () => {
   return localStorage.getItem("authToken");
