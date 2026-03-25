@@ -164,7 +164,7 @@ const FacilityDetails = () => {
             {facility.resources.map(res => (
               <div key={res.id} className={`resource-card status-${res.status}`}>
                 <div className="resource-top">
-                  <h3>{RESOURCE_TYPES[res.type] || "Nepoznato"} (ID: {res.id})</h3>
+                  <h3>{RESOURCE_TYPES[res.type] || "Nepoznato"}</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {(isAdmin || isEmployee) && (
                       <button 
