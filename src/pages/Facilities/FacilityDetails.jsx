@@ -22,6 +22,7 @@ const FacilityDetails = () => {
   const [reservationsList, setReservationsList] = useState({});
   const [timeSlots, setTimeSlots] = useState({});
   const [newSlotTimes, setNewSlotTimes] = useState({});
+  const [editingResourceId, setEditingResourceId] = useState(null);
 
   const handleStartTimeChange = (resId, startVal) => {
     if (!startVal) {
@@ -164,9 +165,45 @@ const FacilityDetails = () => {
               <div key={res.id} className={`resource-card status-${res.status}`}>
                 <div className="resource-top">
                   <h3>{RESOURCE_TYPES[res.type] || "Nepoznato"} (ID: {res.id})</h3>
-                  <span className={`status-badge status-${res.status}`}>
-                    {RESOURCE_STATUS[res.status] || "Nepoznato"}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {(isAdmin || isEmployee) && (
+                      <button 
+                        onClick={() => setEditingResourceId(editingResourceId === res.id ? null : res.id)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+                        title="Izmeni status"
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    {editingResourceId === res.id ? (
+                      <select 
+                        value={res.status} 
+                        onChange={async (e) => {
+                          const newStatus = Number(e.target.value);
+                          try {
+                            await apiFetch("/api/Resources/update-status", {
+                              method: "POST",
+                              body: JSON.stringify({ resourceId: res.id, status: newStatus })
+                            });
+                            setEditingResourceId(null);
+                            loadData();
+                            setBookMessage("Status uspešno ažuriran!");
+                          } catch (err) {
+                            setBookMessage("Greška pri ažuriranju statusa: " + err.message);
+                          }
+                        }}
+                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '4px', padding: '2px 4px' }}
+                      >
+                        {RESOURCE_STATUS.map((s, idx) => (
+                          <option key={idx} value={idx}>{s}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`status-badge status-${res.status}`}>
+                        {RESOURCE_STATUS[res.status] || "Nepoznato"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="resource-info">
                   <p><strong>Nivo/Sprat:</strong> {res.floor}</p>
@@ -193,8 +230,8 @@ const FacilityDetails = () => {
                     </button>
                   )}
 
-                  {/* Dostupni Termini za sve sprave */}
-                  {true && (
+                  {/* Dostupni Termini za sve sprave (samo ako je slobodna) */}
+                  {res.status === 0 ? (
                     <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #334155' }}>
                       <h4 style={{ marginBottom: '0.5rem', color: '#fcd34d' }}>Dostupni Termini</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -280,8 +317,10 @@ const FacilityDetails = () => {
                           Zakaži izabrani termin
                         </button>
                       )}
-
-
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #334155', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                      Nema dostupnih termina za ovu spravu ({RESOURCE_STATUS[res.status]}).
                     </div>
                   )}
                 </div>
